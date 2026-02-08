@@ -11,3 +11,5 @@ steps:
     args:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:$SHORT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
