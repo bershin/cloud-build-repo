@@ -29,6 +29,8 @@ steps:
   args:
   - '-c'
   - |
+    mkdir -p ~/.ssh && \
+    ssh-keyscan github.com >> ~/.ssh/known_hosts && \
     git clone git@github.com:bershin/cloud-deploy-repo.git && \
     cd cloud-deploy-repo && \
     git checkout candidate && \
