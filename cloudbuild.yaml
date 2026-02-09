@@ -1,15 +1,61 @@
+# [START cloudbuild - Docker Image Build]
+# us-central1-docker.pkg.dev/project-f09e95b2-bc36-4b45-bf4/bjohn-ar-us-central/test-ar
 steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    id: Build
-    args:
-      - 'build'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:$SHORT_SHA'
-      - '.'
-  - name: 'gcr.io/cloud-builders/docker'
-    id: Push
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:$SHORT_SHA'
+# This step builds the container image.
+- name: 'gcr.io/cloud-builders/docker'
+  id: Build
+  args:
+  - 'build'
+  - '-t'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:$SHORT_SHA'
+  - '.'
+
+# This step pushes the image to Artifact Registry
+# The PROJECT_ID and SHORT_SHA variables are automatically
+# replaced by Cloud Build.
+- name: 'gcr.io/cloud-builders/docker'
+  id: Push
+  args:
+  - 'push'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:$SHORT_SHA'
+# [END cloudbuild - Docker Image Build]
+
+
+# [START cloudbuild-trigger-cd]
+# This step clones the myapp1-k8s-repo repository
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Clone myapp1-k8s-repo repository
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    git clone git@github.com:bershin/cloud-deploy-repo.git && \
+    cd cloud-deploy-repo && \
+    git checkout candidate && \
+    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+# This step generates the new manifest
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Generate Kubernetes manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+     sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" kubernetes.yaml.tpl | \
+     sed "s/COMMIT_SHA/${SHORT_SHA}/g" > cloud-deploy-repo/kubernetes.yaml
+# This step pushes the manifest back to myapp1-k8s-repo
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Push manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    set -x && \
+    cd cloud-deploy-repo && \
+    git add kubernetes.yaml && \
+    git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/bjohn-ar-us-central/test-ar:${SHORT_SHA}
+    Built from commit ${COMMIT_SHA} of repository myapp1-app-repo
+    Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
+    git push origin candidate
+# [END cloudbuild-trigger-cd]
 options:
   logging: CLOUD_LOGGING_ONLY
