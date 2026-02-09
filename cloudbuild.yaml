@@ -23,7 +23,7 @@ steps:
   args:
   - '-c'
   - |
-    git clone https://x-access-token:$$GITHUB_TOKEN@github.com/berchin/cloud-deploy-repo.git && \
+    git clone https://x-access-token:$$GITHUB_TOKEN@github.com/bershin/cloud-deploy-repo.git && \
     cd cloud-deploy-repo && \
     git checkout candidate && \
     git config user.email "cloudbuild@$PROJECT_ID.iam.gserviceaccount.com" && \
